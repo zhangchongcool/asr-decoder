@@ -128,8 +128,8 @@ class ContextGraph:
                     node.next[token] = ContextState(
                         self.num_nodes,
                         token,
-                        self.context_score,
-                        node_score,
+                        0, #self.context_score,
+                        0, #node_score,
                         node_score if is_end else 0,
                         is_end,
                     )
