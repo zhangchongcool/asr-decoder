@@ -109,7 +109,7 @@ class CTCDecoder:
                         self.copy_context(prefix_score, next_score1)
                         # Update *u-u -> *uu, - is for blank
                         u_lm_state = kenlm.State()
-                        u_lm_score = self.lm.BaseScore(PrefixScore.lm_state, str(u), u_lm_state)
+                        u_lm_score = self.lm_model.BaseScore(PrefixScore.lm_state, str(u), u_lm_state)
                         n_prefix = prefix + (u,)
                         next_score2 = next_hyps[n_prefix]
                         next_score2.lm_state = u_lm_state
@@ -122,7 +122,7 @@ class CTCDecoder:
                         self.update_context(prefix_score, next_score2, u)
                     else:
                         u_lm_state = kenlm.State()
-                        u_lm_score = self.lm.BaseScore(PrefixScore.lm_state, str(u), u_lm_state)
+                        u_lm_score = self.lm_model.BaseScore(PrefixScore.lm_state, str(u), u_lm_state)
                         n_prefix = prefix + (u,)
                         next_score = next_hyps[n_prefix]
                         next_score.lm_state = u_lm_state
