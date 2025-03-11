@@ -20,7 +20,7 @@ import torch
 from .context_graph import ContextGraph
 from .prefix_score import PrefixScore
 from .utils import log_add
-
+import kenlm
 
 class CTCDecoder:
     def __init__(
@@ -30,6 +30,8 @@ class CTCDecoder:
         bpe_model: str = None,
         context_score: float = 6.0,
         blank_id: int = 0,
+        lm_weight: float = 0.15,
+        lm_file: str = ""
     ):
         self.context_graph = None
         if contexts is not None:
@@ -37,12 +39,16 @@ class CTCDecoder:
         self.blank_id = blank_id
         self.cur_t = 0
         self.cur_hyps = []
+        self.lm_weight = lm_weight
+        self.lm_model = kenlm.Model(lm_file)
         self.reset()
 
     def reset(self):
         self.cur_t = 0
         context_root = None if self.context_graph is None else self.context_graph.root
-        self.cur_hyps = [(tuple(), PrefixScore(s=0.0, v_s=0.0, context_state=context_root))]
+        lm_state = kenlm.State()
+        self.lm_model.NullContextWrite(lm_state)
+        self.cur_hyps = [(tuple(), PrefixScore(s=0.0, v_s=0.0, context_state=context_root, lm_state=lm_state))]
 
     def copy_context(self, prefix_score, next_score):
         # perfix not changed, copy the context from prefix
@@ -102,9 +108,12 @@ class CTCDecoder:
                                 next_score1.times_ns[-1] = self.cur_t
                         self.copy_context(prefix_score, next_score1)
                         # Update *u-u -> *uu, - is for blank
+                        u_lm_state = kenlm.State()
+                        u_lm_score = self.lm.BaseScore(PrefixScore.lm_state, str(u), u_lm_state)
                         n_prefix = prefix + (u,)
                         next_score2 = next_hyps[n_prefix]
-                        next_score2.ns = log_add(next_score2.ns, prefix_score.s + prob)
+                        next_score2.lm_state = u_lm_state
+                        next_score2.ns = log_add(next_score2.ns, prefix_score.s + prob + self.lm_weight*u_lm_score)
                         if next_score2.v_ns < prefix_score.v_s + prob:
                             next_score2.v_ns = prefix_score.v_s + prob
                             next_score2.cur_token_prob = prob
@@ -112,9 +121,12 @@ class CTCDecoder:
                             next_score2.times_ns.append(self.cur_t)
                         self.update_context(prefix_score, next_score2, u)
                     else:
+                        u_lm_state = kenlm.State()
+                        u_lm_score = self.lm.BaseScore(PrefixScore.lm_state, str(u), u_lm_state)
                         n_prefix = prefix + (u,)
                         next_score = next_hyps[n_prefix]
-                        next_score.ns = log_add(next_score.ns, prefix_score.score() + prob)
+                        next_score.lm_state = u_lm_state
+                        next_score.ns = log_add(next_score.ns, prefix_score.score() + prob + self.lm_weight*u_lm_score)
                         if next_score.v_ns < prefix_score.viterbi_score() + prob:
                             next_score.v_ns = prefix_score.viterbi_score() + prob
                             next_score.cur_token_prob = prob

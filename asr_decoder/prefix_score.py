@@ -14,7 +14,7 @@
 
 from .context_graph import ContextState
 from .utils import log_add
-
+import kenlm
 
 class PrefixScore:
     """For CTC prefix beam search"""
@@ -27,6 +27,7 @@ class PrefixScore:
         v_ns: float = float("-inf"),
         context_state: ContextState = None,
         context_score: float = 0.0,
+        lm_state: kenlm.State = None
     ):
         self.s = s  # blank_ending_score
         self.ns = ns  # none_blank_ending_score
@@ -38,6 +39,7 @@ class PrefixScore:
         self.context_state = context_state
         self.context_score = context_score
         self.has_context = False
+        self.lm_state = lm_state
 
     def score(self):
         return log_add(self.s, self.ns)
