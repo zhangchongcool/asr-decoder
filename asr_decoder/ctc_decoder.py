@@ -40,14 +40,21 @@ class CTCDecoder:
         self.cur_t = 0
         self.cur_hyps = []
         self.lm_weight = lm_weight
-        self.lm_model = kenlm.Model(lm_file)
+        if self.lm_weight < 0.0000001:
+            self.lm_weight = 0.0
+            self.lm_model = None
+        else:
+            self.lm_model = kenlm.Model(lm_file)
         self.reset()
 
     def reset(self):
         self.cur_t = 0
         context_root = None if self.context_graph is None else self.context_graph.root
-        lm_state = kenlm.State()
-        self.lm_model.NullContextWrite(lm_state)
+        if self.lm_model is not None:
+            lm_state = kenlm.State()
+            self.lm_model.NullContextWrite(lm_state)
+        else:
+            lm_state = None
         self.cur_hyps = [(tuple(), PrefixScore(s=0.0, v_s=0.0, context_state=context_root, lm_state=lm_state))]
 
     def copy_context(self, prefix_score, next_score):
@@ -108,8 +115,12 @@ class CTCDecoder:
                                 next_score1.times_ns[-1] = self.cur_t
                         self.copy_context(prefix_score, next_score1)
                         # Update *u-u -> *uu, - is for blank
-                        u_lm_state = kenlm.State()
-                        u_lm_score = self.lm_model.BaseScore(prefix_score.lm_state, str(u), u_lm_state)
+                        if self.lm_model is not None:
+                            u_lm_state = kenlm.State()
+                            u_lm_score = self.lm_model.BaseScore(prefix_score.lm_state, str(u), u_lm_state)
+                        else:
+                            u_lm_state = None
+                            u_lm_score = 0.0
                         n_prefix = prefix + (u,)
                         next_score2 = next_hyps[n_prefix]
                         next_score2.lm_state = u_lm_state
@@ -121,8 +132,12 @@ class CTCDecoder:
                             next_score2.times_ns.append(self.cur_t)
                         self.update_context(prefix_score, next_score2, u)
                     else:
-                        u_lm_state = kenlm.State()
-                        u_lm_score = self.lm_model.BaseScore(prefix_score.lm_state, str(u), u_lm_state)
+                        if self.lm_model is not None:
+                            u_lm_state = kenlm.State()
+                            u_lm_score = self.lm_model.BaseScore(prefix_score.lm_state, str(u), u_lm_state)
+                        else:
+                            u_lm_state = None
+                            u_lm_score = 0.0
                         n_prefix = prefix + (u,)
                         next_score = next_hyps[n_prefix]
                         next_score.lm_state = u_lm_state
