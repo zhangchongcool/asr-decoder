@@ -124,7 +124,7 @@ class CTCDecoder:
                         n_prefix = prefix + (u,)
                         next_score2 = next_hyps[n_prefix]
                         next_score2.lm_state = u_lm_state
-                        next_score2.ns = log_add(next_score2.ns, prefix_score.s + prob + self.lm_weight*u_lm_score)
+                        next_score2.ns = log_add(next_score2.ns, prefix_score.s + (1-self.lm_weight)*prob + self.lm_weight*2.3*u_lm_score)
                         if next_score2.v_ns < prefix_score.v_s + prob:
                             next_score2.v_ns = prefix_score.v_s + prob
                             next_score2.cur_token_prob = prob
@@ -141,7 +141,7 @@ class CTCDecoder:
                         n_prefix = prefix + (u,)
                         next_score = next_hyps[n_prefix]
                         next_score.lm_state = u_lm_state
-                        next_score.ns = log_add(next_score.ns, prefix_score.score() + prob + self.lm_weight*u_lm_score)
+                        next_score.ns = log_add(next_score.ns, prefix_score.score() + (1-self.lm_weight)*prob + self.lm_weight*2.3*u_lm_score)
                         if next_score.v_ns < prefix_score.viterbi_score() + prob:
                             next_score.v_ns = prefix_score.viterbi_score() + prob
                             next_score.cur_token_prob = prob
